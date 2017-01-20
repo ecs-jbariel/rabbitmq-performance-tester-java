@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -18,20 +19,30 @@ public class RabbitMQTester {
 
 	public static ScheduledThreadPoolExecutor globalThreadPool = new ScheduledThreadPoolExecutor(10);
 
+	private static final Out o = new Out(RabbitMQTester.class);
+
 	private static boolean doProduce = false;
 	private static boolean doConsume = false;
 
 	public static void main(String[] args) {
-		Out.i("Starting...");
+		o.i("Starting...");
 
 		RMQProperties properties = loadProperties();
 
-		Out.setLogLevel(properties.getLogLevel());
+		o.setLogLevel(properties.getLogLevel());
 		doProduce = properties.isProducer();
 		doConsume = properties.isConsumer();
 
-		// final RMQProducer rmqProducer = new RMQProducer(properties);
-		// final RMQConsumer rmqConsumer = new RMQConsumer(properties);
+		final StatsInfo statsInfo = new StatsInfo();
+
+		ScheduledFuture<?> statsFuture = globalThreadPool.scheduleAtFixedRate(new Runnable() {
+
+			@Override
+			public void run() {
+				statsInfo.writeStats();
+
+			}
+		}, 0, 1000L, TimeUnit.MILLISECONDS);
 
 		final List<RMQProducer> rmqProducers = new ArrayList<>();
 		final int numProducers = properties.getNumberOfProducers();
@@ -46,10 +57,10 @@ public class RabbitMQTester {
 		}
 
 		if (doProduce) {
-			Out.d("Creating %d producer(s)...", numProducers);
+			o.d("Creating %d producer(s)...", numProducers);
 			int cnt = 0;
 			for (final RMQProducer p : rmqProducers) {
-				Out.d("Starting producer %d of %d...", ++cnt, numConsumers);
+				o.d("Starting producer %d of %d...", ++cnt, numConsumers);
 				globalThreadPool.schedule(new Runnable() {
 
 					@Override
@@ -57,7 +68,7 @@ public class RabbitMQTester {
 						try {
 							p.start();
 						} catch (IOException e) {
-							Out.e("Error starting RMQProducer");
+							o.e("Error starting RMQProducer");
 							e.printStackTrace();
 						}
 					}
@@ -66,11 +77,13 @@ public class RabbitMQTester {
 			}
 		}
 
-		if (doConsume) {
-			Out.d("Creating %d consumer(s)...", numConsumers);
+		if (doConsume)
+
+		{
+			o.d("Creating %d consumer(s)...", numConsumers);
 			int cnt = 0;
 			for (final RMQConsumer c : rmqConsumers) {
-				Out.d("Starting consumer %d of %d...", ++cnt, numConsumers);
+				o.d("Starting consumer %d of %d...", ++cnt, numConsumers);
 				globalThreadPool.schedule(new Runnable() {
 
 					@Override
@@ -78,7 +91,7 @@ public class RabbitMQTester {
 						try {
 							c.start();
 						} catch (IOException e) {
-							Out.e("Error starting RMQConsumer");
+							o.e("Error starting RMQConsumer");
 							e.printStackTrace();
 						}
 					}
@@ -87,9 +100,9 @@ public class RabbitMQTester {
 			}
 		}
 
-		Out.i("Running...");
+		o.i("Running...");
 
-		Out.i("Press \"ENTER\" to continue...");
+		o.i("Press \"ENTER\" to continue...");
 		try {
 			System.in.read();
 		} catch (
@@ -98,14 +111,14 @@ public class RabbitMQTester {
 			e.printStackTrace();
 		}
 
-		Out.i("Closing down...");
+		o.i("Closing down...");
 
 		if (doProduce) {
 			rmqProducers.forEach(p -> {
 				try {
 					p.stop();
 				} catch (IOException e) {
-					Out.w("IOException stopping producer!");
+					o.w("IOException stopping producer!");
 					e.printStackTrace();
 				}
 			});
@@ -116,18 +129,30 @@ public class RabbitMQTester {
 				try {
 					c.stop();
 				} catch (IOException e) {
-					Out.w("IOException stopping consumer!");
+					o.w("IOException stopping consumer!");
 					e.printStackTrace();
 				}
 			});
 		}
 
-		Out.i("Exiting...");
+		if (null != statsFuture) {
+			statsFuture.cancel(true);
+			while (!statsFuture.isDone()) {
+				try {
+					Thread.sleep(10L);
+				} catch (InterruptedException e) {
+					// going to ignore...
+				}
+			}
+
+		}
+
+		o.i("Exiting...");
 		System.exit(0);
 	}
 
 	private static RMQProperties loadProperties() {
-		Out.d("Loading properties...");
+		o.d("Loading properties...");
 		RMQProperties props = new RMQProperties();
 
 		Properties propfile = new Properties();
@@ -151,19 +176,19 @@ public class RabbitMQTester {
 			props.setProducerMessageSize(NumberUtils.toInt(propfile.getProperty("producerMessageSize", "1000")));
 
 		} catch (IOException e) {
-			Out.e("Exception loading properties file");
+			o.e("Exception loading properties file");
 			e.printStackTrace();
 		} finally {
 			if (null != input) {
 				try {
 					input.close();
 				} catch (IOException e) {
-					Out.w("Error closing input...");
+					o.w("Error closing input...");
 				}
 			}
 		}
 
-		Out.i("Found properties: %s", props);
+		o.i("Found properties: %s", props);
 		return props;
 	}
 

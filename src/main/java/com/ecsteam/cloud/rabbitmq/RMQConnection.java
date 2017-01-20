@@ -9,6 +9,8 @@ import com.rabbitmq.client.ConnectionFactory;
 
 public abstract class RMQConnection {
 
+	protected final Out o = new Out(this.getClass());
+
 	protected Connection currentConnection;
 	protected Channel currentChannel;
 	protected RMQProperties connectionInfo;
@@ -35,7 +37,7 @@ public abstract class RMQConnection {
 			try {
 				currentChannel.close();
 			} catch (TimeoutException e) {
-				Out.w("Timed out closing channel...");
+				o.w("Timed out closing channel...");
 				e.printStackTrace();
 			}
 		}
@@ -79,7 +81,7 @@ public abstract class RMQConnection {
 			// } catch (KeyManagementException | NoSuchAlgorithmException |
 			// URISyntaxException e) {
 		} catch (Exception e) {
-			Out.e("Error setting up ConnectionFactory with URI...");
+			o.e("Error setting up ConnectionFactory with URI...");
 			e.printStackTrace();
 		}
 		return factory;
@@ -92,7 +94,7 @@ public abstract class RMQConnection {
 			currentConnection = factory.newConnection();
 			currentChannel = currentConnection.createChannel();
 		} catch (TimeoutException e) {
-			Out.e("Creating connection timed out...");
+			o.e("Creating connection timed out...");
 			e.printStackTrace();
 		}
 	}

@@ -31,7 +31,7 @@ public class RMQProducer extends RMQConnection {
 					currentChannel.basicPublish(exchangeName, routingKey, null,
 							RandomUtils.nextBytes(connectionInfo.getProducerMessageSize()));
 				} catch (IOException e) {
-					Out.e("Error publishing message");
+					o.e("Error publishing message");
 					e.printStackTrace();
 				}
 

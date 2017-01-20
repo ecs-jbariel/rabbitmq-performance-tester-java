@@ -1,7 +1,12 @@
 package com.ecsteam.cloud.rabbitmq;
 
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+
+import org.apache.commons.lang3.StringUtils;
 
 public class Out {
 
@@ -31,46 +36,93 @@ public class Out {
 
 	}
 
-	private static LogLevel currentLogLevel = LogLevel.INFO;
+	protected LogLevel currentLogLevel = LogLevel.INFO;
 
-	private static SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+	private SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
 
-	public static void t(String msg, Object... objects) {
+	private String clazzName = "unset";
+
+	private boolean toSystemOut = true;
+
+	private String logFileName = null;
+
+	public Out() {
+		super();
+	}
+
+	public Out(Class<?> clazz) {
+		this();
+		this.clazzName = (null == clazz) ? StringUtils.EMPTY : clazz.getName();
+	}
+
+	public Out(boolean toSystemOut, String logFileName) {
+		this(null, toSystemOut, logFileName);
+	}
+
+	public Out(Class<?> clazz, boolean toSystemOut, String logFileName) {
+		this(clazz);
+		this.toSystemOut = toSystemOut;
+		this.logFileName = StringUtils.trimToNull(logFileName);
+	}
+
+	public void t(String msg, Object... objects) {
 		doLog(LogLevel.TRACE, msg, objects);
 	}
 
-	public static void d(String msg, Object... objects) {
+	public void d(String msg, Object... objects) {
 		doLog(LogLevel.DEBUG, msg, objects);
 	}
 
-	public static void i(String msg, Object... objects) {
+	public void i(String msg, Object... objects) {
 		doLog(LogLevel.INFO, msg, objects);
 	}
 
-	public static void w(String msg, Object... objects) {
+	public void w(String msg, Object... objects) {
 		doLog(LogLevel.WARN, msg, objects);
 	}
 
-	public static void e(String msg, Object... objects) {
+	public void e(String msg, Object... objects) {
 		doLog(LogLevel.ERROR, msg, objects);
 	}
 
-	public static void f(String msg, Object... objects) {
+	public void f(String msg, Object... objects) {
 		doLog(LogLevel.FATAL, msg, objects);
 	}
 
-	public static void setLogLevel(LogLevel newLevel) {
+	public void setLogLevel(LogLevel newLevel) {
 		currentLogLevel = newLevel;
 	}
 
-	protected static void doLog(LogLevel level, String msg, Object... objects) {
+	protected void doLog(LogLevel level, String msg, Object... objects) {
 		if (currentLogLevel.doLog(level)) {
-			System.out.println(
-					dateTimeAsString() + String.format("[%-5s] ", level.level()) + String.format(msg, objects));
+			logger(dateTimeAsString() + String.format("[%-5s] ", level.level())
+					+ ((StringUtils.isEmpty(this.clazzName) ? "" : String.format("[%s] ", this.clazzName)))
+					+ String.format(msg, objects));
 		}
 	}
 
-	public static String dateTimeAsString() {
+	protected void logger(String msg) {
+		if (toSystemOut) {
+			System.out.println(msg);
+		}
+		if (null != this.logFileName) {
+			PrintWriter pw = null;
+			try {
+				pw = new PrintWriter(new FileWriter(this.logFileName, true), true);
+				pw.println(msg);
+				pw.close();
+			} catch (IOException e) {
+				System.err.println("Could not write to file: '" + this.logFileName + "'");
+				e.printStackTrace();
+			} finally {
+				if (null != pw) {
+					pw.close();
+				}
+			}
+		}
+	}
+
+	public String dateTimeAsString() {
 		return String.format("[%s] ", df.format(new Date()));
 	}
 

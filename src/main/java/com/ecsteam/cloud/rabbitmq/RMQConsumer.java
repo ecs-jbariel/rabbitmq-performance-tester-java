@@ -30,33 +30,33 @@ public class RMQConsumer extends RMQConnection {
 			public void handleDelivery(String consumerTag, Envelope envelope, BasicProperties properties, byte[] body)
 					throws IOException {
 
-				Out.d(new String(body));
+				o.d(new String(body));
 				currentChannel.basicAck(envelope.getDeliveryTag(), false);
 			}
 
 			@Override
 			public void handleConsumeOk(String consumerTag) {
-				Out.d("HandleConsumeOk");
+				o.d("HandleConsumeOk");
 			}
 
 			@Override
 			public void handleCancelOk(String consumerTag) {
-				Out.d("HandleCancelOk");
+				o.d("HandleCancelOk");
 			}
 
 			@Override
 			public void handleCancel(String consumerTag) throws IOException {
-				Out.d("HandleCancel");
+				o.d("HandleCancel");
 			}
 
 			@Override
 			public void handleShutdownSignal(String consumerTag, ShutdownSignalException sig) {
-				Out.d("HandleShutdownSignal");
+				o.d("HandleShutdownSignal");
 			}
 
 			@Override
 			public void handleRecoverOk(String consumerTag) {
-				Out.d("HandleRecoverOk");
+				o.d("HandleRecoverOk");
 			}
 		});
 	}
